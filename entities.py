@@ -10,6 +10,7 @@ class DekAgent:
         self.health = 100
         self.stamina = 50
         self.carrying_thia = False
+        self.strength = 10
 
         # Clan / reputation mechanics (e)
         self.honour = 0

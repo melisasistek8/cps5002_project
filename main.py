@@ -67,18 +67,20 @@ def main() -> None:
             dek.health += 10
             dek.honour += 2
             dek.trophies += 1
+            dek.strength += 1 
             print(f"Step {step}: Dek hunted wildlife (+10 health, +2 honour, trophy={dek.trophies}).")
 
         elif cell == MONSTER:
             dek.health -= 25
             dek.honour -= 1
-            print("Step {step}: Dek fought a monster (-25 health, -1 honour).")
+            print(f"Step {step}: Dek fought a monster (-25 health, -1 honour).")
 
         elif cell == THIA:
+           if not dek.carrying_thia:
             dek.carrying_thia = True
             clue = thia.provide_clue()
             if clue:
-                print(f"Step {step}: {clue}")
+             print(f"Step {step}: {clue}")
             print(f"Step {step}: Dek is now carrying Thia (movement costs more stamina).")
 
         elif cell == FATHER:
@@ -104,7 +106,7 @@ def main() -> None:
         env.set_cell(brother.x, brother.y, BROTHER)
 
         # Status line
-        print(f"Step {step}: Dek at ({dek.x},{dek.y}) health={dek.health} stamina={dek.stamina} honour={dek.honour}")
+        print(f"Step {step}: Dek at ({dek.x},{dek.y}) health={dek.health} stamina={dek.stamina} honour={dek.honour} strength={dek.strength}")
 
         if dek.health <= 0 or dek.stamina <= 0:
             print("Simulation ended: Dek can no longer continue.")
