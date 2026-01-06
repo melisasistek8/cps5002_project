@@ -2,7 +2,12 @@ import random
 
 EMPTY = "."
 
+
 class Environment:
+    
+    "Planet Kalisk."
+    
+
     def __init__(self, size: int):
         self.size = size
         self.grid = [[EMPTY for _ in range(size)] for _ in range(size)]
@@ -23,3 +28,4 @@ class Environment:
     def print_grid(self) -> None:
         for row in self.grid:
             print(" ".join(row))
+        print()
