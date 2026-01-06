@@ -1,6 +1,6 @@
 import random
 
-from environment import Environment
+from environment import Environment, EMPTY
 from entities import DekAgent, Thia, ClanMember
 
 GRID_SIZE = 20
@@ -21,7 +21,7 @@ def clan_trial(dek: DekAgent, challenger: ClanMember) -> None:
 
     if power >= challenger.strength:
         dek.honour += 5
-        print(f"Trial: Dek proved worth against {challenger.role} (+5 honour).")
+        print(f"Trial: Dek proved his worth against {challenger.role} (+5 honour).")
     else:
         dek.honour -= 5
         dek.health -= 10
@@ -31,44 +31,40 @@ def clan_trial(dek: DekAgent, challenger: ClanMember) -> None:
 def clan_judgement(dek: DekAgent, event: str) -> None:
     if event == "hunt_unworthy":
         dek.honour -= 4
-        print("Clan judgement: Dishonour. Hunting the unworthy is forbidden (-4 honour).")
+        print("Clan disapproves, hunting the unworthy is forbidden (-4 honour).")
     elif event == "hunt_worthy":
         dek.honour += 3
-        print("Clan judgement: Approved. Worthy prey brings honour (+3 honour).")
+        print("Clan approves, worthy prey brings honour (+3 honour).")
 
 
-def move_clan_member(member: ClanMember, env: Environment, dek: DekAgent) -> None:
-    if random.random() < 0.5:
-        dx = 0
-        dy = 0
-        if member.x < dek.x:
-            dx = 1
-        elif member.x > dek.x:
-            dx = -1
-        elif member.y < dek.y:
-            dy = 1
-        elif member.y > dek.y:
-            dy = -1
+def move_clan_member(member: ClanMember, env: Environment) -> None:
 
-        member.x = (member.x + dx) % env.size
-        member.y = (member.y + dy) % env.size
-    else:
-        dx, dy = random.choice([(1, 0), (-1, 0), (0, 1), (0, -1)])
-        member.x = (member.x + dx) % env.size
-        member.y = (member.y + dy) % env.size
+    "Clan members move one step but only onto EMPTY or DEK. This prevents them overwriting traps, Kaiju or Thia and deleting them."
+    
+    valid_moves = []
+    for dx, dy in [(1, 0), (-1, 0), (0, 1), (0, -1)]:
+        nx = (member.x + dx) % env.size
+        ny = (member.y + dy) % env.size
+        if env.grid[ny][nx] in (EMPTY, DEK):
+            valid_moves.append((nx, ny))
+
+    if valid_moves:
+        member.x, member.y = random.choice(valid_moves)
 
 
 def main() -> None:
     env = Environment(GRID_SIZE)
 
+    #created dek
     x, y = env.random_empty_cell()
     dek = DekAgent(x, y)
-    env.set_cell(dek.x, dek.y, DEK)
 
+    #thia intel and shield
     thia_trap_shield_used = False
     thia_boss_hint_given = False
     kaiju_alive = True
 
+    #objects
     wx, wy = env.random_empty_cell()
     env.set_cell(wx, wy, WILDLIFE)
 
@@ -81,10 +77,12 @@ def main() -> None:
     kx, ky = env.random_empty_cell()
     env.set_cell(kx, ky, KAIJU)
 
+    #thia
     tx, ty = env.random_empty_cell()
     thia = Thia(tx, ty)
     env.set_cell(thia.x, thia.y, THIA)
 
+    #clan members
     fx, fy = env.random_empty_cell()
     father = ClanMember(fx, fy, "Father")
     env.set_cell(father.x, father.y, FATHER)
@@ -93,14 +91,24 @@ def main() -> None:
     brother = ClanMember(bx, by, "Brother")
     env.set_cell(brother.x, brother.y, BROTHER)
 
-    for step in range(30):
+    env.set_cell(dek.x, dek.y, DEK)
+
+    for step in range(60):
+        env.print_grid()
+        print(
+            f"Step {step} | Health={dek.health} Stamina={dek.stamina} "
+            f"Strength={dek.strength} Honour={dek.honour} Trophies={dek.trophies}"
+        )
+
         env.clear_cell(dek.x, dek.y)
         env.clear_cell(father.x, father.y)
         env.clear_cell(brother.x, brother.y)
 
+        #dek
         dek.move(env)
         cell = env.grid[dek.y][dek.x]
 
+        #meetings w others on gane 
         if cell == WILDLIFE:
             dek.health += 10
             dek.trophies += 1
@@ -141,8 +149,8 @@ def main() -> None:
                 kaiju_alive = False
                 dek.honour += 10
                 dek.trophies += 1
-                env.set_cell(kx, ky, ".")
                 print(f"Step {step}: Dek defeated the Kaiju! (+10 honour, trophy={dek.trophies})")
+                env.set_cell(kx, ky, EMPTY)
                 break
             else:
                 dek.health -= 40
@@ -153,14 +161,16 @@ def main() -> None:
         elif cell == THIA:
             if not dek.carrying_thia:
                 dek.carrying_thia = True
+                env.clear_cell(thia.x, thia.y)  
+
                 clue = thia.provide_clue()
                 if clue:
                     print(f"Step {step}: {clue}")
-                print(f"Step {step}: Dek is now carrying Thia (movement costs more stamina).")
+                print(f"Step {step}: Dek is now carrying Thia.")
 
-            if not thia_boss_hint_given and kaiju_alive:
-                print(f"Step {step}: Thia intel: Kaiju detected near ({kx},{ky}).")
-                thia_boss_hint_given = True
+                if not thia_boss_hint_given and kaiju_alive:
+                    print(f"Step {step}: Thia intel: Kaiju detected near ({kx},{ky}).") # thia gives one clue
+                    thia_boss_hint_given = True
 
         elif cell == FATHER:
             clan_trial(dek, father)
@@ -168,34 +178,29 @@ def main() -> None:
         elif cell == BROTHER:
             clan_trial(dek, brother)
 
-        move_clan_member(father, env, dek)
-        move_clan_member(brother, env, dek)
+        move_clan_member(father, env)
+        move_clan_member(brother, env)
 
+        #trial w dek
         if father.x == dek.x and father.y == dek.y:
             clan_trial(dek, father)
         if brother.x == dek.x and brother.y == dek.y:
             clan_trial(dek, brother)
 
         env.set_cell(dek.x, dek.y, DEK)
-        env.set_cell(thia.x, thia.y, THIA)
         env.set_cell(father.x, father.y, FATHER)
         env.set_cell(brother.x, brother.y, BROTHER)
 
-        print(
-            f"Step {step}: Dek at ({dek.x},{dek.y}) "
-            f"health={dek.health} stamina={dek.stamina} "
-            f"strength={dek.strength} honour={dek.honour}"
-        )
+        if not dek.carrying_thia:
+            env.set_cell(thia.x, thia.y, THIA)
 
         if dek.health <= 0 or dek.stamina <= 0:
             print("Simulation ended: Dek can no longer continue.")
             break
 
-        if dek.honour <=  -20:
+        if dek.honour <= -20:
             print("Clan judgement: Banishment. Dek has broken the code too many times.")
             break
-
-    env.print_grid()
 
 
 if __name__ == "__main__":
