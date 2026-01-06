@@ -12,7 +12,7 @@ class DekAgent:
         self.carrying_thia = False
         self.strength = 10
 
-        # Clan / reputation mechanics (e)
+        #clan honours/trophies
         self.honour = 0
         self.trophies = 0
 
@@ -36,7 +36,7 @@ class Thia:
     def provide_clue(self):
         if not self.provided_clue:
             self.provided_clue = True
-            return "Thia warning: the adversary is dangerous—avoid direct contact until stamina is high."
+            return "Thia warning: Avoid direct contact adversary until stamina is high."
         return None
 
 
